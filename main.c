@@ -4,12 +4,10 @@ int main()
 {
     Stack stack = {};
 
-    ConstructStack(&stack, 1);
+    сonstructStack(&stack, 1);
     
     for (int i = 0; i < 100; ++i)
     {
-        //stackDump_simple(&stack);
-
         pushStack_simple(&stack, i*i);
     }
 

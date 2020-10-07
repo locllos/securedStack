@@ -1,57 +1,46 @@
 #include "stack.h"
 
+#define DEBUG
+
+#ifdef DEBUG
 #define ASSERT_OK(stack)							\
     if(stackOk_simple(stack) != NO_ERROR)			\
     {												\
         stackDump_simple(stack);					\
         assert(0);									\
-    }												\
+    }
+#else ASSERT_OK(stack) {}
+#endif
     
-
 int isZero(elem_t value)
 {
-	return (fabs(value) < EPS);
+    return (fabs(value) < EPS);
 }
 
 int checkSum(Stack* stack)
 {
-	const int heshy = 15487457 * 23;
+    const int heshy = 15487457 * 23;
 
-	int check_sum = (int)stack;
+    int check_sum = (int)stack;
+    check_sum += (int)stack->capacity;
+    check_sum += (int)stack->size;
 
-	//add canarry in function
-	//int canarry = (int)stack->buffer + (int)(stack->buffer + stack->capacity);
-
-	check_sum += (int)stack->capacity;
-	check_sum += (int)stack->size;
-
-	
     for (size_t i = 0; i < stack->size * sizeof(elem_t); ++i)
     {
-		check_sum += ((int)((char*)stack->buffer + i)) % heshy;
+        check_sum += ((int)((char*)stack->buffer + i) * (i* (i + 1))) % heshy;
     }
 
-	for (size_t i = 0; i < stack->size * sizeof(elem_t); ++i)
-	{
-		check_sum += ((int)((char*)stack->buffer + i) * (i* (i + 1))) % heshy;
-	}
+    for (size_t i = 0; i < stack->size; ++i)
+    {
+        check_sum += (int)stack->buffer[i] * (i + 1);
 
-	for (size_t i = 0; i < stack->size; ++i)
-	{
-		check_sum += (int)stack->buffer[i];
-	}
+        if (i % 100 == 0)
+        {
+            check_sum %= heshy;
+        }
+    }
 
-	for (size_t i = 0; i < stack->size; ++i)
-	{
-		check_sum += (int)stack->buffer[i] * (i + 1);
-
-		if (i % 100 == 0)
-		{
-			check_sum %= heshy;
-		}
-	}
-
-	check_sum += (int)stack->buffer;
+    check_sum += (int)stack->buffer;
 
     return check_sum;
 }
@@ -60,290 +49,317 @@ void fillNolls(elem_t* start, elem_t* end)
 {
     for (int i = 0; i < end - start + 1; ++i)
     {
-		start[i] = NOLL;
+        start[i] = NOLL;
     }
 }
 
-void constructStack_simple(Stack* stack, const size_t start_size)
+void constructStack_simple(Stack* stack, const size_t start_capacity, const char* var_name)
 {
-	stack->buffer = (elem_t*)calloc(start_size, sizeof(elem_t));
-	stack->capacity = start_size;
-	stack->size = 0;
+    //Fill buffer canarries
+    stack->buffer_canarry_a = (long int*)calloc(1, sizeof(elem_t) * start_capacity + sizeof(long int) * 2);
+    stack->buffer = (elem_t*)((char*)stack->buffer_canarry_a + sizeof(long int));
+    stack->buffer_canarry_b = (long int*)((char*)stack->buffer + sizeof(elem_t) * start_capacity);
+    //Fill stack canarries
+    stack->stack_canarry_a = (long int*)stack;
+    stack->stack_canarry_b = (long int*)stack;
+    
+    stack->capacity = start_capacity;
+    stack->size = 0;  
+    stack->var_name = var_name;  
 
-	fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
+    fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
 
-	stack->check_sum = checkSum(stack);
+    stack->check_sum = checkSum(stack);
 
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 
 }
 
-void constructStack_smart(Stack_s* stack, const size_t start_size)
+Stack* newStack_simple(const size_t start_capacity)
 {
-	stack->capacity = start_size;
-	stack->size = 0;
-}
+    char* var_name = (char*)calloc(72, sizeof(char));
+    strcpy(var_name, "<Name of variable is not available when called newStack_simple>");
 
-Stack* newStack_simple(const size_t start_size)
-{
-	Stack* new_stack = (Stack*)calloc(1, sizeof(Stack));
+    long int* stack_canarry_a = (long int*)calloc(1, sizeof(Stack) + sizeof(long int) * 2);
+    Stack* new_stack = (Stack*)((char*)stack_canarry_a + sizeof(long int));
 
-	constructStack_simple(new_stack, start_size);
+    new_stack->stack_canarry_a = (long int*)stack_canarry_a;
+    new_stack->stack_canarry_b = (long int*)((char*)new_stack + sizeof(Stack) - sizeof(long int) * 2);
 
-	ASSERT_OK(new_stack);
+    constructStack_simple(new_stack, start_capacity, var_name);
 
-	return new_stack;
-}
+    ASSERT_OK(new_stack);
 
-Stack_s* newStack_smart(const size_t start_size)
-{
-	Stack_s* stack = (Stack_s*)calloc(1, sizeof(Stack_s) + start_size * sizeof(elem_t));
-
-	constructStack_smart(stack, start_size);
-
-	return stack;
-
+    free(var_name);
+    return new_stack;
 }
 
 void changeCapacity(Stack* stack, const double factor, const OPERATION operation)
-{
-	//printf("CHANGE CAPACITY: %d\n", stack->capacity);
+{   
+    if (operation == PUSH)
+    {   
+        stack->capacity = factor * stack->capacity;
+    }
+    else if (operation == POP)
+    {
+        stack->capacity = (size_t)(stack->capacity / factor);
+    }
+    else
+    {
+        return;
+    }
 
-	if (operation == PUSH)
-	{
-		stack->capacity = factor * stack->size;
-	}
-	else if (operation == POP)
-	{
-		stack->capacity = (size_t)(stack->capacity / factor) + 1;
-	}
-	else
-	{
-		return;
-	}
-
-	//printf("CHANGE CAPACITY: %d\n", stack->capacity);
-
-
-	stack->buffer = (elem_t*)realloc(stack->buffer, stack->capacity * sizeof(elem_t));
-
+    stack->buffer_canarry_a = (long int*)realloc(stack->buffer_canarry_a, sizeof(elem_t) * stack->capacity + sizeof(long int) * 2);
+    stack->buffer = (elem_t*)((char*)stack->buffer_canarry_a + sizeof(long int));
+    stack->buffer_canarry_b = (long int*)((char*)stack->buffer + sizeof(elem_t) * stack->capacity);
 }
 
 void checkSizeCapacity(Stack* stack, const OPERATION operation)
 {
-	if (stack->size + 1 > stack->capacity && operation == PUSH)
-	{
-		changeCapacity(stack, 2, operation);
-	}
-	else if (stack->size < stack->capacity / 1.4 && operation == POP)
-	{
-		changeCapacity(stack, 1.4, operation);
+    if (stack->size + 1 > stack->capacity && operation == PUSH)
+    {
+        changeCapacity(stack, 2, operation);
+    }
+    else if (stack->size < stack->capacity / 4 && operation == POP)
+    {
+        changeCapacity(stack, 4, operation);
 
-		fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
-	}
-	
+        fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
+    }
+    
 }
 
 void pushStack_simple(Stack* stack, const elem_t value)
 {
-	ASSERT_OK(stack);
-	
-	checkSizeCapacity(stack, PUSH);
+    ASSERT_OK(stack);
+    
+    checkSizeCapacity(stack, PUSH);
 
-	stack->buffer[stack->size] = value;
-	++stack->size;
+    stack->buffer[stack->size] = value;
+    ++stack->size;
 
-	stack->check_sum = checkSum(stack);
-	fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
+    stack->check_sum = checkSum(stack);
+    fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
 
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 
 }
 
 elem_t topStack_simple(Stack* stack)
 {
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 
-	return stack->buffer[stack->size - 1];
+    return stack->buffer[stack->size - 1];
 
 }
 
 void popStack_simple(Stack* stack)
 {
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 
-	checkSizeCapacity(stack, POP);
+    checkSizeCapacity(stack, POP);
 
-	stack->buffer[stack->size - 1] = NOLL;
-	--(stack->size);
+    stack->buffer[stack->size - 1] = NOLL;
+    --(stack->size);
 
-	stack->check_sum = checkSum(stack);
+    stack->check_sum = checkSum(stack);
 
 
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 }
 
 void deleteStack_simple(Stack* stack)
 {
-	ASSERT_OK(stack);
+    ASSERT_OK(stack);
 
-	free(stack->buffer);
-	free(stack);
-}
-
-void deleteStack_smart(Stack_s* stack)
-{
-	free(stack);
+    free(stack->buffer);
+    free(stack);
 }
 
 ERROR_MESSAGE stackOk_simple(Stack* stack)
 {
-	static size_t count = 0;
-	count++;
+    static size_t count = 0;
+    count++;
 
-	/*
-	printf("FUNCTION CALL # %d\n", count);
-	printf("===\n");
+    /*
+    printf("FUNCTION CALL # %d\n", count);
+    printf("===\n");
 
-	
-	printf("CHECK SUM NATIVE: %d\n", stack->check_sum);
-	printf("CHECK SUM AFTER: %d\n", test_check_sum);
-	printf("===\n");
-	*/
-	
+    
+    printf("CHECK SUM NATIVE: %d\n", stack->check_sum);
+    printf("CHECK SUM AFTER: %d\n", test_check_sum);
+    printf("===\n");
+    */
+    
 
-	if (stack == NULL)
-	{
-		return NULL_STACK_ERROR;
-	}
-	else if (stack->buffer == NULL)
-	{
-		return NULL_BUFFER_ERROR;
-	}
-	
-	else if (stack->size == 0 && stack->capacity == 0)
-	{
-		return ZERO_SIZE_ERROR;
-	}
-	
-	else if (stack->capacity == 0)
-	{
-		return ZERO_CAPACITY_ERROR;
-	}
-	else if (stack->capacity < stack->size)
-	{
-		return BIG_SIZE_ERROR;
-	}
+    if (stack == NULL)
+    {
+        return NULL_STACK_ERROR;
+    }
+    else if (stack->stack_canarry_a != (long int*)stack /*|| stack->stack_canarry_a != (long int*)((char*)stack - sizeof(long int))*/)
+    {
+        return STACK_CANARRY_A_ERROR;
+    }
+    else if (stack->stack_canarry_b != (long int*)stack /*|| stack->stack_canarry_b != (long int*)((char*)stack + sizeof(Stack) - sizeof(long int) * 2)*/)
+    {
+        return STACK_CANARRY_B_ERROR;
+    }
+    else if (stack->buffer == NULL)
+    {
+        return NULL_BUFFER_ERROR;
+    }
+        else if (stack->buffer_canarry_a != (long int*)((char*)stack->buffer - sizeof(long int)))
+    {
+        return BUFFER_CANARRY_A_ERROR;
+    }
+    else if (stack->buffer_canarry_b != (long int*)((char*)stack->buffer + sizeof(elem_t) * stack->capacity))
+    {
+        return BUFFER_CANARRY_B_ERROR;
+    }
+    else if (stack->size == 0 && stack->capacity == 0)
+    {
+        return ZERO_SIZE_ERROR;
+    }
+    else if (stack->capacity == 0)
+    {
+        return ZERO_CAPACITY_ERROR;
+    }
+    else if (stack->capacity < stack->size)
+    {
+        return BIG_SIZE_ERROR;
+    }
 
-	const int test_check_sum = checkSum(stack);
+    const int test_check_sum = checkSum(stack);
 
-	if (stack->check_sum != test_check_sum)
-	{
-		return  CHANGE_SOME_DATA_ERROR;
-	}
+    if (stack->check_sum != test_check_sum)
+    {
+        return  CHANGE_SOME_DATA_ERROR;
+    }
 
-	else
-	{
-	    for (size_t i = 0; i < stack->size; ++i)
-	    {
-	        if (isZero(stack->buffer[i] - NOLL))
-	        {
-				return NOLL_ELEMENT_ERROR;
-	        }
-	    }
-	}
+    else
+    {
+        for (size_t i = 0; i < stack->size; ++i)
+        {
+            if (isnan(stack->buffer[i]))
+            {
+                return NOLL_ELEMENT_ERROR;
+            }
+            //Добавить проверку на равенство конечной канарейки
+        }
+    }
 
-	return NO_ERROR;
-	
+    return NO_ERROR;
+    
 }
 
 void stackDump_simple(Stack* stack)
 {
-	const ERROR_MESSAGE result_of_operation = stackOk_simple(stack);
+    const ERROR_MESSAGE result_of_operation = stackOk_simple(stack);
 
-	char* stack_status = (char*)calloc(25, sizeof(char));
+    char* stack_status = (char*)calloc(25, sizeof(char));
 
-	if (result_of_operation == NULL_STACK_ERROR)
-	{
-		strcpy(stack_status, "NULL STACK");
-	}
-	else if (result_of_operation == NULL_BUFFER_ERROR)
-	{
-		strcpy(stack_status, "NULL BUFFER");
-	}
-	else if (result_of_operation == ZERO_SIZE_ERROR)
-	{
-		strcpy(stack_status, "ZERO SIZE");
-	}
-	else if  (result_of_operation == ZERO_CAPACITY_ERROR)
-	{
-		strcpy(stack_status, "ZERO CAPACITY");
-	}
-	else if (result_of_operation == BIG_SIZE_ERROR)
-	{
-		strcpy(stack_status, "SIZE GREATER THAN CAPACITY");
-	}
-	else if (result_of_operation == NOLL_ELEMENT_ERROR)
-	{
-		strcpy(stack_status, "NaN ELEMENT");
-	}
-	else if (result_of_operation == CHANGE_SOME_DATA_ERROR)
-	{
-		strcpy(stack_status, "CHANGE SOME DATA");
-	}
-	else
-	{
-		strcpy(stack_status, "ok");
-	}
+    if (result_of_operation == NULL_STACK_ERROR)
+    {
+        strcpy(stack_status, "NULL STACK");
+    }
+    else if (result_of_operation == STACK_CANARRY_A_ERROR)
+    {
+        strcpy(stack_status, "STACK CANARRY A ERROR");
+    }
+    else if (result_of_operation == STACK_CANARRY_B_ERROR)
+    {
+        strcpy(stack_status, "STACK CANARRY B ERROR");
+    }
+    else if (result_of_operation == NULL_BUFFER_ERROR)
+    {
+        strcpy(stack_status, "NULL BUFFER");
+    }
+    else if (result_of_operation == BUFFER_CANARRY_A_ERROR)
+    {
+        strcpy(stack_status, "BUFFER CANARRY A ERROR");
+    }
+    else if (result_of_operation == BUFFER_CANARRY_B_ERROR)
+    {
+        strcpy(stack_status, "BUFFER CANARRY B ERROR");
+    }
+    else if (result_of_operation == ZERO_SIZE_ERROR)
+    {
+        strcpy(stack_status, "ZERO SIZE AND CAPACITY");
+    }
+    else if  (result_of_operation == ZERO_CAPACITY_ERROR)
+    {
+        strcpy(stack_status, "ZERO CAPACITY");
+    }
+    else if (result_of_operation == BIG_SIZE_ERROR)
+    {
+        strcpy(stack_status, "SIZE GREATER THAN CAPACITY");
+    }
+    else if (result_of_operation == NOLL_ELEMENT_ERROR)
+    {
+        strcpy(stack_status, "NaN ELEMENT");
+    }
+    else if (result_of_operation == CHANGE_SOME_DATA_ERROR)
+    {
+        strcpy(stack_status, "CHANGE SOME DATA");
+    }
+    else
+    {
+        strcpy(stack_status, "ok");
+    }
 
-	printf("==================================\n");
+    printf("==================================\n");
 
-	printf("Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
+    printf("Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
 
-	if (strcmp(stack_status, "NULL STACK") == 0)
-	{
-		printf("\nSTACK HAS NULL POINTER\n");
+    if (strcmp(stack_status, "NULL STACK") == 0)
+    {
+        printf("\nSTACK HAS NULL POINTER\n");
 
-		printf("==================================\n");
+        printf("==================================\n");
 
-		return;	
-	}
+        return;	
+    }
 
-	printf("{\n    size = %d\n    capacity = %d\n    buffer[0x%p]\n", stack->size, stack->capacity, stack->buffer);
+    printf("{\n\tsize = %d\n\tcapacity = %d\n\tbuffer[0x%p]"
+            "\n\tstack_canarry_a = 0x%p\n\tstack_canarry_b = 0x%p\n", 
+            stack->size, stack->capacity, stack->buffer, stack->stack_canarry_a, stack->stack_canarry_b);
 
-	if (strcmp(stack_status, "NULL BUFFER") == 0)
-	{
-		printf("\nSTACK BUFFER HAS NULL POINTER\n");
+    if (strcmp(stack_status, "NULL BUFFER") == 0)
+    {
+        printf("\nSTACK BUFFER HAS NULL POINTER\n");
 
-		printf("==================================\n");
+        printf("==================================\n");
 
-		return;
-	}
+        return;
+    }
 
-	if (strcmp(stack_status, "\nSIZE GREATER THAN CAPACITY\n") == 0)
-	{
-		printf("\nSIZE GREATER THAN CAPACITY\n");
+    printf("\n\tbuffer_canarry_a = 0x%p\n\tbuffer_canarry_b = 0x%p\n", 
+            stack->buffer_canarry_a, stack->buffer_canarry_b);
 
-		printf("==================================\n");
+    if (strcmp(stack_status, "\nSIZE GREATER THAN CAPACITY\n") == 0)
+    {
+        printf("\nSIZE GREATER THAN CAPACITY\n");
 
-		return;
-	}
+        printf("==================================\n");
 
-	printf("    {\n");
-	for (size_t i = 0; i < stack->capacity; ++i)
-	{
-		if (!isZero(stack->buffer[i] - NOLL))
-		{
-			printf("        +[%d] = %lg\n", i, stack->buffer[i]);
-		}
-		else
-		{
-			printf("         [%d] = NaN\n", i);
-		}
-	}
-	printf("    }\n");
-	printf("}\n");
+        return;
+    }
+
+    printf("\t{\n");
+    for (size_t i = 0; i < stack->capacity; ++i)
+    {
+        if (!isnan(stack->buffer[i]))
+        {
+            printf("\t\t+[%d] = %lg\n", i, stack->buffer[i]);
+        }
+        else
+        {
+            printf("\t\t [%d] = NaN\n", i);
+        }
+    }
+    printf("\t}\n");
+    printf("}\n");
 
 
-	printf("==================================\n");
+    printf("==================================\n");
 }
