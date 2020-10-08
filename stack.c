@@ -80,11 +80,18 @@ Stack* newStack_simple(const size_t start_capacity)
     char* var_name = (char*)calloc(72, sizeof(char));
     strcpy(var_name, "<Name of variable is not available when called newStack_simple>");
 
+    Stack* new_stack = (Stack*)calloc(1, sizeof(Stack));
+
+    new_stack->stack_canarry_a = (long int*)new_stack;
+    new_stack->stack_canarry_b = (long int*)new_stack;
+
+    /*
     long int* stack_canarry_a = (long int*)calloc(1, sizeof(Stack) + sizeof(long int) * 2);
     Stack* new_stack = (Stack*)((char*)stack_canarry_a + sizeof(long int));
 
     new_stack->stack_canarry_a = (long int*)stack_canarry_a;
     new_stack->stack_canarry_b = (long int*)((char*)new_stack + sizeof(Stack) - sizeof(long int) * 2);
+    */
 
     constructStack_simple(new_stack, start_capacity, var_name);
 
@@ -196,11 +203,11 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
     {
         return NULL_STACK_ERROR;
     }
-    else if (stack->stack_canarry_a != (long int*)stack /*|| stack->stack_canarry_a != (long int*)((char*)stack - sizeof(long int))*/)
+    else if (stack->stack_canarry_a != (long int*)stack)
     {
         return STACK_CANARRY_A_ERROR;
     }
-    else if (stack->stack_canarry_b != (long int*)stack /*|| stack->stack_canarry_b != (long int*)((char*)stack + sizeof(Stack) - sizeof(long int) * 2)*/)
+    else if (stack->stack_canarry_b != (long int*)stack)
     {
         return STACK_CANARRY_B_ERROR;
     }
@@ -236,15 +243,11 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
         return  CHANGE_SOME_DATA_ERROR;
     }
 
-    else
+    for (size_t i = 0; i < stack->size; ++i)
     {
-        for (size_t i = 0; i < stack->size; ++i)
+        if (isnan(stack->buffer[i]))
         {
-            if (isnan(stack->buffer[i]))
-            {
-                return NOLL_ELEMENT_ERROR;
-            }
-            //Добавить проверку на равенство конечной канарейки
+            return NOLL_ELEMENT_ERROR;
         }
     }
 
@@ -321,7 +324,7 @@ void stackDump_simple(Stack* stack)
     }
 
     printf("{\n\tsize = %d\n\tcapacity = %d\n\tbuffer[0x%p]"
-            "\n\tstack_canarry_a = 0x%p\n\tstack_canarry_b = 0x%p\n", 
+            "\n\tstack_canarry_a = 0x%p\n\tstack_canarry_b = 0x%p", 
             stack->size, stack->capacity, stack->buffer, stack->stack_canarry_a, stack->stack_canarry_b);
 
     if (strcmp(stack_status, "NULL BUFFER") == 0)
