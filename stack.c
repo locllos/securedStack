@@ -19,7 +19,7 @@ int isZero(elem_t value)
 
 int checkSum(Stack* stack)
 {
-    const int heshy = 15487457 * 23;
+    const int heshy_a = 15487457 * 23;
 
     int check_sum = (int)stack;
     check_sum += (int)stack->capacity;
@@ -32,9 +32,9 @@ int checkSum(Stack* stack)
 
     for (size_t i = 0; i < stack->size; ++i)
     {
-        check_sum += (int)stack->buffer[i] * (i + 1);
+        check_sum += stack->buffer[i] * (i + 1);
 
-        if (i % 100 == 0)
+        if (i % 5 == 0)
         {
             check_sum %= heshy;
         }
@@ -53,8 +53,10 @@ void fillNolls(elem_t* start, elem_t* end)
     }
 }
 
-void constructStack_simple(Stack* stack, const size_t start_capacity, const char* var_name)
-{
+void constructStack_simple(Stack* stack, size_t start_capacity, const char* var_name)
+{   
+    start_capacity = (start_capacity != 0) ? start_capacity : 1;
+
     //Fill buffer canarries
     stack->buffer_canarry_a = (long int*)calloc(1, sizeof(elem_t) * start_capacity + sizeof(long int) * 2);
     stack->buffer = (elem_t*)((char*)stack->buffer_canarry_a + sizeof(long int));
@@ -65,7 +67,7 @@ void constructStack_simple(Stack* stack, const size_t start_capacity, const char
     
     stack->capacity = start_capacity;
     stack->size = 0;  
-    stack->var_name = var_name;  
+    stack->var_name = var_name + 1;  
 
     fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
 
@@ -163,14 +165,14 @@ elem_t topStack_simple(Stack* stack)
 void popStack_simple(Stack* stack)
 {
     ASSERT_OK(stack);
+    if (stack->size == 0)
+        return;
 
     checkSizeCapacity(stack, POP);
 
     stack->buffer[stack->size - 1] = NOLL;
     --(stack->size);
-
     stack->check_sum = checkSum(stack);
-
 
     ASSERT_OK(stack);
 }
@@ -215,7 +217,7 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
     {
         return NULL_BUFFER_ERROR;
     }
-        else if (stack->buffer_canarry_a != (long int*)((char*)stack->buffer - sizeof(long int)))
+    else if (stack->buffer_canarry_a != (long int*)((char*)stack->buffer - sizeof(long int)))
     {
         return BUFFER_CANARRY_A_ERROR;
     }
@@ -339,7 +341,7 @@ void stackDump_simple(Stack* stack)
     printf("\n\tbuffer_canarry_a = 0x%p\n\tbuffer_canarry_b = 0x%p\n", 
             stack->buffer_canarry_a, stack->buffer_canarry_b);
 
-    if (strcmp(stack_status, "\nSIZE GREATER THAN CAPACITY\n") == 0)
+    if (result_of_operation == BIG_SIZE_ERROR)
     {
         printf("\nSIZE GREATER THAN CAPACITY\n");
 

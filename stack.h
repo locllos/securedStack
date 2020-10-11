@@ -8,10 +8,7 @@
 #define NOLL NAN
 
 #define сonstructStack(pseudo_address, start_size)                      \
-    char* var_name = (char*)calloc(72, sizeof(char));                   \
-    strcpy(var_name, #pseudo_address);                                  \
-    constructStack_simple(pseudo_address, start_size, var_name + 1);    \
-    free(var_name)                                                  
+    constructStack_simple(pseudo_address, start_size, #pseudo_address)
 
 
 typedef double elem_t;
@@ -48,7 +45,7 @@ typedef struct Stack
     size_t size;
     size_t capacity;
     elem_t* buffer;
-    char* var_name;
+    const char* var_name;
     int check_sum;
     
     long int* buffer_canarry_a;

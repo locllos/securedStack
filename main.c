@@ -13,7 +13,7 @@ int main()
 
     stackDump_simple(&stack);
 
-    for (int i = 0; i < 30; ++i)
+    for (int i = 0; i < 130; ++i)
     {
         popStack_simple(&stack);
     }
