@@ -55,7 +55,7 @@ void fillNolls(elem_t* start, elem_t* end)
 
 void constructStack_simple(Stack* stack, size_t start_capacity, const char* var_name)
 {   
-    start_capacity = (start_capacity != 0) ? start_capacity : 1;
+    start_capacity = (start_capacity > 0) ? start_capacity : 1;
 
     //Fill buffer canarries
     stack->buffer_canarry_a = (long int*)calloc(1, sizeof(elem_t) * start_capacity + sizeof(long int) * 2);
@@ -227,11 +227,15 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
     }
     else if (stack->size == 0 && stack->capacity == 0)
     {
-        return ZERO_SIZE_ERROR;
+        return BAD_SIZE_ERROR;
     }
-    else if (stack->capacity == 0)
+    else if (stack->size < 1)
     {
-        return ZERO_CAPACITY_ERROR;
+        return BAD_SIZE_ERROR;
+    }
+    else if (stack->capacity < 1)
+    {
+        return BAD_CAPACITY_ERROR;
     }
     else if (stack->capacity < stack->size)
     {
@@ -287,13 +291,13 @@ void stackDump_simple(Stack* stack)
     {
         strcpy(stack_status, "BUFFER CANARRY B ERROR");
     }
-    else if (result_of_operation == ZERO_SIZE_ERROR)
+    else if (result_of_operation == BAD_SIZE_ERROR)
     {
-        strcpy(stack_status, "ZERO SIZE AND CAPACITY");
+        strcpy(stack_status, "BAD SIZE AND CAPACITY");
     }
-    else if  (result_of_operation == ZERO_CAPACITY_ERROR)
+    else if  (result_of_operation == BAD_CAPACITY_ERROR)
     {
-        strcpy(stack_status, "ZERO CAPACITY");
+        strcpy(stack_status, "BAD CAPACITY");
     }
     else if (result_of_operation == BIG_SIZE_ERROR)
     {
