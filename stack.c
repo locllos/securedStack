@@ -143,7 +143,6 @@ void changeCapacity(Stack* stack, const double factor, const OPERATION operation
     {
         return;
     }
-
     stack->buffer_canarry_a = (long int*)realloc(stack->buffer_canarry_a, sizeof(elem_t) * stack->capacity + sizeof(long int) * 2);
 
     assert(stack->buffer_canarry_a != NULL);

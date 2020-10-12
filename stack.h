@@ -10,7 +10,6 @@
 #define constructStack(pseudo_address, start_size)                      \
     constructStack_simple(pseudo_address, start_size, #pseudo_address)
 
-
 typedef double elem_t;
 
 typedef enum OPERATION
