@@ -17,20 +17,35 @@ int isZero(elem_t value)
     return (fabs(value) < EPS);
 }
 
+int hashSum(const void* buffer, const int length)
+{
+    const int heshy = 15487457 * 23;
+    int hash_sum = 0;
+
+    for (int i = 0; i < length; ++i)
+    {
+        hash_sum += ((int)((char*)buffer + i) * (i * (i + 1))) % heshy;
+
+        if (i % 100)
+        {
+            hash_sum %= hash_sum & heshy;
+        }
+    }
+
+    return hash_sum;
+}
+
 int checkSum(Stack* stack)
 {
-    const int heshy_a = 15487457 * 23;
+    const int heshy = 15487457 * 23;
 
     int check_sum = (int)stack;
     check_sum += (int)stack->capacity;
     check_sum += (int)stack->size;
 
-    for (size_t i = 0; i < stack->size * sizeof(elem_t); ++i)
-    {
-        check_sum += ((int)((char*)stack->buffer + i) * (i* (i + 1))) % heshy;
-    }
+    check_sum += hashSum(stack->buffer, stack->size * sizeof(elem_t));
 
-    for (size_t i = 0; i < stack->size; ++i)
+    for (int i = 0; i < stack->size; ++i)
     {
         check_sum += stack->buffer[i] * (i + 1);
 
@@ -45,6 +60,13 @@ int checkSum(Stack* stack)
     return check_sum;
 }
 
+int sizeStack_simple(const Stack* stack)
+{
+    ASSERT_OK(stack);
+    return stack->size;
+    ASSERT_OK(stack);
+}
+
 void fillNolls(elem_t* start, elem_t* end)
 {
     for (int i = 0; i < end - start + 1; ++i)
@@ -53,12 +75,24 @@ void fillNolls(elem_t* start, elem_t* end)
     }
 }
 
-void constructStack_simple(Stack* stack, size_t start_capacity, const char* var_name)
+void constructStack_simple(Stack* stack, int start_capacity, const char* var_name)
 {   
-    start_capacity = (start_capacity > 0) ? start_capacity : 1;
+    if (start_capacity == 0)
+    {
+        start_capacity = 1;
+    }
+    else if (start_capacity < 0)
+    {   
+        stack = NULL;
+        stackDump_simple(stack);
+        assert(!"NEGATIVE START CAPACITY");
+    }
 
     //Fill buffer canarries
     stack->buffer_canarry_a = (long int*)calloc(1, sizeof(elem_t) * start_capacity + sizeof(long int) * 2);
+
+    assert(stack->buffer_canarry_a != NULL);
+
     stack->buffer = (elem_t*)((char*)stack->buffer_canarry_a + sizeof(long int));
     stack->buffer_canarry_b = (long int*)((char*)stack->buffer + sizeof(elem_t) * start_capacity);
     //Fill stack canarries
@@ -77,7 +111,7 @@ void constructStack_simple(Stack* stack, size_t start_capacity, const char* var_
 
 }
 
-Stack* newStack_simple(const size_t start_capacity)
+Stack* newStack_simple(const int start_capacity)
 {
     char* var_name = (char*)calloc(72, sizeof(char));
     strcpy(var_name, "<Name of variable is not available when called newStack_simple>");
@@ -86,14 +120,6 @@ Stack* newStack_simple(const size_t start_capacity)
 
     new_stack->stack_canarry_a = (long int*)new_stack;
     new_stack->stack_canarry_b = (long int*)new_stack;
-
-    /*
-    long int* stack_canarry_a = (long int*)calloc(1, sizeof(Stack) + sizeof(long int) * 2);
-    Stack* new_stack = (Stack*)((char*)stack_canarry_a + sizeof(long int));
-
-    new_stack->stack_canarry_a = (long int*)stack_canarry_a;
-    new_stack->stack_canarry_b = (long int*)((char*)new_stack + sizeof(Stack) - sizeof(long int) * 2);
-    */
 
     constructStack_simple(new_stack, start_capacity, var_name);
 
@@ -111,7 +137,7 @@ void changeCapacity(Stack* stack, const double factor, const OPERATION operation
     }
     else if (operation == POP)
     {
-        stack->capacity = (size_t)(stack->capacity / factor);
+        stack->capacity = (int)(stack->capacity / factor);
     }
     else
     {
@@ -119,6 +145,9 @@ void changeCapacity(Stack* stack, const double factor, const OPERATION operation
     }
 
     stack->buffer_canarry_a = (long int*)realloc(stack->buffer_canarry_a, sizeof(elem_t) * stack->capacity + sizeof(long int) * 2);
+
+    assert(stack->buffer_canarry_a != NULL);
+
     stack->buffer = (elem_t*)((char*)stack->buffer_canarry_a + sizeof(long int));
     stack->buffer_canarry_b = (long int*)((char*)stack->buffer + sizeof(elem_t) * stack->capacity);
 }
@@ -157,6 +186,11 @@ void pushStack_simple(Stack* stack, const elem_t value)
 elem_t topStack_simple(Stack* stack)
 {
     ASSERT_OK(stack);
+    if (stack->size == 0)
+    {
+        stackDump_simple(stack);
+        assert(!"EMPTY STACK");
+    }
 
     return stack->buffer[stack->size - 1];
 
@@ -187,19 +221,8 @@ void deleteStack_simple(Stack* stack)
 
 ERROR_MESSAGE stackOk_simple(Stack* stack)
 {
-    static size_t count = 0;
+    static int count = 0;
     count++;
-
-    /*
-    printf("FUNCTION CALL # %d\n", count);
-    printf("===\n");
-
-    
-    printf("CHECK SUM NATIVE: %d\n", stack->check_sum);
-    printf("CHECK SUM AFTER: %d\n", test_check_sum);
-    printf("===\n");
-    */
-    
 
     if (stack == NULL)
     {
@@ -225,11 +248,11 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
     {
         return BUFFER_CANARRY_B_ERROR;
     }
-    else if (stack->size == 0 && stack->capacity == 0)
+    else if (stack->size <= 0 && stack->capacity <= 0)
     {
         return BAD_SIZE_ERROR;
     }
-    else if (stack->size < 1)
+    else if (stack->size < 0)
     {
         return BAD_SIZE_ERROR;
     }
@@ -249,7 +272,7 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
         return  CHANGE_SOME_DATA_ERROR;
     }
 
-    for (size_t i = 0; i < stack->size; ++i)
+    for (int i = 0; i < stack->size; ++i)
     {
         if (isnan(stack->buffer[i]))
         {
@@ -318,16 +341,16 @@ void stackDump_simple(Stack* stack)
 
     printf("==================================\n");
 
-    printf("Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
-
     if (strcmp(stack_status, "NULL STACK") == 0)
     {
         printf("\nSTACK HAS NULL POINTER\n");
 
         printf("==================================\n");
 
-        return;	
+        return;
     }
+
+    printf("Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
 
     printf("{\n\tsize = %d\n\tcapacity = %d\n\tbuffer[0x%p]"
             "\n\tstack_canarry_a = 0x%p\n\tstack_canarry_b = 0x%p", 
@@ -355,7 +378,7 @@ void stackDump_simple(Stack* stack)
     }
 
     printf("\t{\n");
-    for (size_t i = 0; i < stack->capacity; ++i)
+    for (int i = 0; i < stack->capacity; ++i)
     {
         if (!isnan(stack->buffer[i]))
         {

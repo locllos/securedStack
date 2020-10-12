@@ -3,28 +3,17 @@
 int main()
 {
     Stack stack = {};
-
-    сonstructStack(&stack, 1);
+    constructStack(&stack, 10);
     
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < 7; ++i)
     {
-        pushStack_simple(&stack, i*i);
+        pushStack_simple(&stack, i + 1);
     }
+
+    stack.size = -5;
 
     stackDump_simple(&stack);
 
-    for (int i = 0; i < 130; ++i)
-    {
-        popStack_simple(&stack);
-    }
-   
-
-    pushStack_simple(&stack, 45);
-
-    stack.buffer[1] = 13;
-
-    stackDump_simple(&stack);
-    
 
     return 0;
 }

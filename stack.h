@@ -7,7 +7,7 @@
 #define EPS 1e-9
 #define NOLL NAN
 
-#define сonstructStack(pseudo_address, start_size)                      \
+#define constructStack(pseudo_address, start_size)                      \
     constructStack_simple(pseudo_address, start_size, #pseudo_address)
 
 
@@ -42,8 +42,8 @@ typedef struct Stack
 {
     long int* stack_canarry_a;
 
-    size_t size;
-    size_t capacity;
+    int size;
+    int capacity;
     elem_t* buffer;
     const char* var_name;
     int check_sum;
@@ -55,11 +55,14 @@ typedef struct Stack
 
 } Stack;
 
+
 int checkSum(Stack* stack);
 
-void constructStack_simple(Stack* stack, const size_t start_capacity, const char* var_name);
+int sizeStack_simple(const Stack* stack);
 
-Stack* newStack_simple(const size_t start_capacity);
+void constructStack_simple(Stack* stack, const int start_capacity, const char* var_name);
+
+Stack* newStack_simple(const int start_capacity);
 
 void pushStack_simple(Stack* stack, const elem_t value);
 
