@@ -3,13 +3,13 @@
 #define DEBUG
 
 #ifdef DEBUG
-#define ASSERT_OK(stack)							\
-    if(stackOk_simple(stack) != NO_ERROR)			\
-    {												\
-        stackDump_simple(stack);					\
-        assert(0);									\
+#define ASSERT_OK(stack)							                             \
+    if(stackOk_simple(stack) != NO_ERROR)			                             \
+    {												                             \
+        stackDump_simple(stack, stackOk_simple(stack), __LINE__ - 3, __TIME__);  \
+        assert(0);									                             \
     }
-#else ASSERT_OK(stack) {}
+#else ASSERT_OK(stack)
 #endif
     
 int isZero(elem_t value)
@@ -60,7 +60,7 @@ int checkSum(Stack* stack)
     return check_sum;
 }
 
-int sizeStack_simple(const Stack* stack)
+int sizeStack_simple(Stack* stack)
 {
     ASSERT_OK(stack);
     return stack->size;
@@ -84,8 +84,7 @@ void constructStack_simple(Stack* stack, int start_capacity, const char* var_nam
     else if (start_capacity < 0)
     {   
         stack = NULL;
-        stackDump_simple(stack);
-        assert(!"NEGATIVE START CAPACITY");
+        stackDump_simple(stack, stackOk_simple(stack), __LINE__, __TIME__);
     }
 
     //Fill buffer canarries
@@ -169,7 +168,6 @@ void checkSizeCapacity(Stack* stack, const OPERATION operation)
 void pushStack_simple(Stack* stack, const elem_t value)
 {
     ASSERT_OK(stack);
-    
     checkSizeCapacity(stack, PUSH);
 
     stack->buffer[stack->size] = value;
@@ -179,7 +177,6 @@ void pushStack_simple(Stack* stack, const elem_t value)
     fillNolls(stack->buffer + stack->size, stack->buffer + stack->capacity);
 
     ASSERT_OK(stack);
-
 }
 
 elem_t topStack_simple(Stack* stack)
@@ -187,7 +184,7 @@ elem_t topStack_simple(Stack* stack)
     ASSERT_OK(stack);
     if (stack->size == 0)
     {
-        stackDump_simple(stack);
+        stackDump_simple(stack, BAD_SIZE_ERROR, __LINE__, __TIME__);
         assert(!"EMPTY STACK");
     }
 
@@ -195,7 +192,7 @@ elem_t topStack_simple(Stack* stack)
 
 }
 
-void popStack_simple(Stack* stack)
+void eraseStack_simple(Stack* stack)
 {
     ASSERT_OK(stack);
     if (stack->size == 0)
@@ -210,6 +207,27 @@ void popStack_simple(Stack* stack)
     ASSERT_OK(stack);
 }
 
+elem_t popStack_simple(Stack* stack)
+{
+    ASSERT_OK(stack);
+    if (stack->size == 0)
+    {
+        stackDump_simple(stack, BAD_SIZE_ERROR, __LINE__, __TIME__);
+    }
+
+    checkSizeCapacity(stack, POP);
+
+    elem_t get_popped = topStack_simple(stack);
+
+    stack->buffer[stack->size - 1] = NOLL;
+    --(stack->size);
+    stack->check_sum = checkSum(stack);
+
+    ASSERT_OK(stack);
+
+    return get_popped;
+}
+
 void deleteStack_simple(Stack* stack)
 {
     ASSERT_OK(stack);
@@ -221,7 +239,7 @@ void deleteStack_simple(Stack* stack)
 ERROR_MESSAGE stackOk_simple(Stack* stack)
 {
     static int count = 0;
-    count++;
+    ++count;
 
     if (stack == NULL)
     {
@@ -283,9 +301,9 @@ ERROR_MESSAGE stackOk_simple(Stack* stack)
     
 }
 
-void stackDump_simple(Stack* stack)
-{
-    const ERROR_MESSAGE result_of_operation = stackOk_simple(stack);
+void stackDump_simple(Stack* stack, const ERROR_MESSAGE result_of_operation, const int line_number, const char* time)
+{   
+    FILE* file = fopen("logs.txt", "a");
 
     char* stack_status = (char*)calloc(25, sizeof(char));
 
@@ -315,7 +333,7 @@ void stackDump_simple(Stack* stack)
     }
     else if (result_of_operation == BAD_SIZE_ERROR)
     {
-        strcpy(stack_status, "BAD SIZE AND CAPACITY");
+        strcpy(stack_status, "BAD SIZE OR CAPACITY");
     }
     else if  (result_of_operation == BAD_CAPACITY_ERROR)
     {
@@ -338,59 +356,62 @@ void stackDump_simple(Stack* stack)
         strcpy(stack_status, "ok");
     }
 
-    printf("==================================\n");
+    fprintf(file, "\n==================================\n");
+    fprintf(file, "TIME OF CALL DAMP FUNCTION: %s at line #%d\n", time, line_number);
 
     if (strcmp(stack_status, "NULL STACK") == 0)
     {
-        printf("\nSTACK HAS NULL POINTER\n");
+        fprintf(file, "\nSTACK HAS NULL POINTER\n");
 
-        printf("==================================\n");
+        fprintf(file, "==================================\n");
 
         return;
     }
 
-    printf("Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
+    fprintf(file, "Stack(%s) [0x%p] \"%s\"\n", stack_status, stack, stack->var_name);
 
-    printf("{\n\tsize = %d\n\tcapacity = %d\n\tbuffer[0x%p]"
+    fprintf(file, "{\n\tsize = %d\n\tcapacity = %d\n\tbuffer[0x%p]"
             "\n\tstack_canarry_a = 0x%p\n\tstack_canarry_b = 0x%p", 
             stack->size, stack->capacity, stack->buffer, stack->stack_canarry_a, stack->stack_canarry_b);
 
     if (strcmp(stack_status, "NULL BUFFER") == 0)
     {
-        printf("\nSTACK BUFFER HAS NULL POINTER\n");
+        fprintf(file, "\nSTACK BUFFER HAS NULL POINTER\n");
 
-        printf("==================================\n");
+        fprintf(file, "==================================\n");
 
         return;
     }
 
-    printf("\n\tbuffer_canarry_a = 0x%p\n\tbuffer_canarry_b = 0x%p\n", 
+    fprintf(file, "\n\tbuffer_canarry_a = 0x%p\n\tbuffer_canarry_b = 0x%p\n", 
             stack->buffer_canarry_a, stack->buffer_canarry_b);
 
     if (result_of_operation == BIG_SIZE_ERROR)
     {
-        printf("\nSIZE GREATER THAN CAPACITY\n");
+        fprintf(file, "\nSIZE GREATER THAN CAPACITY\n");
 
-        printf("==================================\n");
+        fprintf(file, "==================================\n");
 
         return;
     }
 
-    printf("\t{\n");
+    fprintf(file, "\t{\n");
     for (int i = 0; i < stack->capacity; ++i)
     {
         if (!isnan(stack->buffer[i]))
         {
-            printf("\t\t+[%d] = %lg\n", i, stack->buffer[i]);
+            fprintf(file, "\t\t+[%d] = %lg\n", i, stack->buffer[i]);
         }
         else
         {
-            printf("\t\t [%d] = NaN\n", i);
+            fprintf(file, "\t\t [%d] = NaN\n", i);
         }
     }
-    printf("\t}\n");
-    printf("}\n");
+    fprintf(file, "\t}\n");
+    fprintf(file, "}\n");
 
 
-    printf("==================================\n");
+    fprintf(file, "==================================\n");
+
+    fclose(file);
 }

@@ -1,7 +1,8 @@
 ﻿#include "stack.h"
 
 int main()
-{
+{   
+    //Here is example of operations with securedStack
     Stack stack = {};
     constructStack(&stack, 10);
     
@@ -10,10 +11,15 @@ int main()
         pushStack_simple(&stack, i + 1);
     }
 
-    stack.size = -5;
+    stackDump_simple(&stack, stackOk_simple(&stack), __LINE__, __TIME__);
 
-    stackDump_simple(&stack);
+    elem_t trash = 0;
+    for (size_t i = 0; i < 10; ++i)
+    {
+        eraseStack_simple(&stack);
+        stackDump_simple(&stack, stackOk_simple(&stack), __LINE__, __TIME__);
 
+    }
 
     return 0;
 }

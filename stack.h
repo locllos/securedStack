@@ -57,7 +57,7 @@ typedef struct Stack
 
 int checkSum(Stack* stack);
 
-int sizeStack_simple(const Stack* stack);
+int sizeStack_simple(Stack* stack);
 
 void constructStack_simple(Stack* stack, const int start_capacity, const char* var_name);
 
@@ -67,13 +67,15 @@ void pushStack_simple(Stack* stack, const elem_t value);
 
 elem_t topStack_simple(Stack* stack);
 
-void popStack_simple(Stack* stack);
+void eraseStack_simple(Stack* stack);
+
+elem_t popStack_simple(Stack* stack);
 
 void deleteStack_simple(Stack* stack);
 
 ERROR_MESSAGE stackOk_simple(Stack* stack);
 
-void stackDump_simple(Stack* stack);
+void stackDump_simple(Stack* stack, const ERROR_MESSAGE result_of_operation, const int line_number, const char* time);
 
 
 
