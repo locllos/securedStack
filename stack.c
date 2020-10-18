@@ -24,7 +24,7 @@ int hashSum(const void* buffer, const int length)
 
     for (int i = 0; i < length; ++i)
     {
-        hash_sum += ((int)((char*)buffer + i) * (i * (i + 1))) % heshy;
+        hash_sum += ((int)((char*)buffer + i) * (i + 1)) % heshy;
 
         if (i % 100)
         {
